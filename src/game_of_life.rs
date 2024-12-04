@@ -20,9 +20,8 @@ impl World {
         self.cells[idx].state == CellState::Alive
     }
 
-    pub fn set_cell(&mut self, cell_index: usize, set_alive: bool) {
-        let new_cell_state = if set_alive { CellState::Alive } else { CellState::Dead };
-        self.cells[cell_index].state = new_cell_state;
+    pub fn toggle_cell(&mut self, cell_index: usize) {
+        self.cells[cell_index].toggle();
     }
 
     pub fn update(&mut self) {
@@ -88,6 +87,13 @@ impl Cell {
                     (!t_side && !l_side).then(|| idx - GAME_H - 1),     // NW
                 ]
             },
+        }
+    }
+
+    pub fn toggle(&mut self) {
+        self.state = match self.state {
+            CellState::Dead => CellState::Alive,
+            CellState::Alive => CellState::Dead,
         }
     }
 
