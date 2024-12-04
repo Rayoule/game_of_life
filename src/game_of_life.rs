@@ -1,6 +1,6 @@
 use crate::{GAME_TOTAL, GAME_H, GAME_W};
 
-type Cells = [Cell; GAME_TOTAL];
+type Cells = Vec<Cell>;
 
 pub struct World {
     cells: Cells,
@@ -8,7 +8,12 @@ pub struct World {
 
 impl World {
     pub fn init() -> Self {
-        World { cells: core::array::from_fn(|i| Cell::new(i)) }
+        World {
+            cells:
+                (0..GAME_TOTAL)
+                    .map(|i| Cell::new(i))
+                    .collect::<Vec<Cell>>()
+        }
     }
 
     pub fn is_cell_alive(&self, idx: usize) -> bool {
@@ -21,16 +26,14 @@ impl World {
     }
 
     pub fn update(&mut self) {
-        println!("Lets updaaaate !");
+        // Clone the state
         let mut new_state: Cells = self.cells.clone();
-
-        println!("Ok copied !");
 
         // Apply Conway's game of life rules:
         new_state
             .iter_mut()
             .for_each(|c| {
-                let alive_neibs = self.cells[c.id].get_num_neighbours_alive(&self.cells);
+                let alive_neibs = self.cells[c.idx].get_num_neighbours_alive(&self.cells);
                 c.state =
                     
                     if !c.is_alive() && alive_neibs == 3 {
@@ -43,21 +46,48 @@ impl World {
             });
         
         self.cells = new_state;
-    } 
+    }
 }
 
 
 #[derive(Clone)]
 pub struct Cell {
-    id: usize,
+    /// Index of the cell within its world
+    idx: usize,
+    /// State of the cell, Alive or Dead
     state: CellState,
+    /// All indices of valid neighbours cells: [N, NE, E, SE, S, SW, W, NW]
+    neighbours_idx: [Option<usize>; 8],
 }
 
 impl Cell {
-    pub fn new(id: usize) -> Self {
+    pub fn new(idx: usize) -> Self {
         Cell {
+            idx,
             state: CellState::Dead,
-            id,
+            neighbours_idx: {
+
+                // 2D cell coords
+                let x = idx % GAME_H;
+                let y = idx / GAME_W;
+                
+                let l_side = x == 0; // is cell on left side ?
+                let r_side = x == GAME_W - 1; // is cell on right side ?
+                let t_side = y == 0; // is cell on top side ?
+                let b_side = y == GAME_H - 1; // is cell on botom side ?
+
+                // fill neighbours array
+                [
+                    (!t_side).then(|| idx - GAME_H),                    // N
+                    (!t_side && !r_side).then(|| idx - GAME_H + 1),     // NE
+                    (!r_side).then(|| idx + 1),                         // E
+                    (!b_side && !r_side).then(|| idx + GAME_H + 1),     // SE
+                    (!b_side).then(|| idx + GAME_H),                    // S
+                    (!l_side && !b_side).then(|| idx + GAME_H - 1),     // SW
+                    (!l_side).then(|| idx - 1),                         // W
+                    (!t_side && !l_side).then(|| idx - GAME_H - 1),     // NW
+                ]
+            },
         }
     }
 
@@ -66,30 +96,16 @@ impl Cell {
     }
 
     pub fn get_num_neighbours_alive(&self, world_state: &Cells) -> usize {
-        let i = self.id;
         let mut alive_count: usize = 0;
 
-        let x = i % GAME_H;
-        let y = i / GAME_W;
+        for idx in self.neighbours_idx {
+            if let Some(idx) = idx {
+                if world_state[idx].is_alive() {
+                    alive_count += 1;
+                }
 
-        // is cell on left side ?
-        let l_side = x == 0;
-        // is cell on right side ?
-        let r_side = x == GAME_W - 1;
-        // is cell on top side ?
-        let t_side = y == 0;
-        // is cell on botom side ?
-        let b_side = y == GAME_H - 1;
-
-        // Check all neighbours and increment alive_count
-        (!t_side).then(|| world_state[i - GAME_H].is_alive().then(|| alive_count += 1));                      // N
-        (!t_side && !r_side).then(|| world_state[i - GAME_H + 1].is_alive().then(|| alive_count += 1));       // NE
-        (!r_side).then(|| world_state[i + 1].is_alive().then(|| alive_count += 1));                           // E
-        (!b_side && !r_side).then(|| world_state[i + GAME_H + 1].is_alive().then(|| alive_count += 1));       // SE
-        (!b_side).then(|| world_state[i + GAME_H].is_alive().then(|| alive_count += 1));                      // S
-        (!l_side && !b_side).then(|| world_state[i + GAME_H - 1].is_alive().then(|| alive_count += 1));        // SW
-        (!l_side).then(|| world_state[i - 1].is_alive().then(|| alive_count += 1));                           // W
-        (!t_side && !l_side).then(|| world_state[ i - GAME_H - 1].is_alive().then(|| alive_count += 1));      // NW
+            }
+        }
 
         alive_count
     }

@@ -9,8 +9,8 @@ const FRAME_RATE: usize = 12;
 const WIDTH: usize = 600;
 const HEIGHT: usize = 600;
 
-pub const GAME_H: usize = 50;
-pub const GAME_W: usize = 50;
+pub const GAME_H: usize = 100;
+pub const GAME_W: usize = 100;
 pub const GAME_TOTAL: usize = GAME_H * GAME_W;
 
 const ALIVE_COLOR: u32 = 0x00ffffff;
@@ -39,7 +39,7 @@ fn main() {
     // Game loop
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
-        if window.is_key_pressed(Key::Enter, KeyRepeat::No) {
+        if window.is_key_pressed(Key::Space, KeyRepeat::No) {
             game_paused = !game_paused;
         }
 
@@ -60,12 +60,26 @@ fn main() {
                 let mut needs_redraw = false;
 
                 if window.get_mouse_down(MouseButton::Left) {
-                    write_world_cell_at_mouse_position(&mut world, true, x, y, WIDTH, HEIGHT);
+                    write_world_cell_at_mouse_position(
+                        &mut world,
+                        true,
+                        x,
+                        y,
+                        WIDTH,
+                        HEIGHT
+                    );
                     needs_redraw = true;
                 }
 
                 if window.get_mouse_down(MouseButton::Right) {
-                    write_world_cell_at_mouse_position(&mut world, false, x, y, WIDTH, HEIGHT);
+                    write_world_cell_at_mouse_position(
+                        &mut world,
+                        false,
+                        x,
+                        y,
+                        WIDTH,
+                        HEIGHT
+                    );
                     needs_redraw = true;
                 }
 
@@ -93,8 +107,8 @@ fn write_world_cell_at_mouse_position(
 ) {
     let ratio_w = screen_w / GAME_W;
     let ratio_h = screen_h / GAME_H;
-    let cell_x = mouse_x as usize / ratio_w;
-    let cell_y = mouse_y as usize / ratio_h;
+    let cell_x = mouse_x.floor() as usize / ratio_w;
+    let cell_y = mouse_y.floor() as usize / ratio_h;
     let cell_index = (cell_y * GAME_W) + cell_x;
     world.set_cell(cell_index, set_alive);
 }
